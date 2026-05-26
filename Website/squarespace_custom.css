@@ -1,0 +1,316 @@
+/* ============================================================
+   SOLARE ITALIANO — Custom CSS per Squarespace Commerce
+   Incolla in: Design → Custom CSS
+   Mobile-first. Testato su Squarespace template Business/Commerce.
+   ============================================================ */
+
+/* ── Variabili globali ────────────────────────────────────── */
+:root {
+  --si-accent:      #D95B2A;   /* arancio caldo — fuoco/calore */
+  --si-accent-dark: #B84920;
+  --si-blue:        #1E4D7B;   /* blu professionale — solare */
+  --si-text:        #1A1A1A;
+  --si-muted:       #6B7280;
+  --si-border:      #E5E7EB;
+  --si-bg:          #F9F8F6;   /* bianco caldo */
+  --si-white:       #FFFFFF;
+  --si-radius:      10px;
+  --si-radius-sm:   6px;
+  --si-shadow:      0 2px 12px rgba(0,0,0,0.08);
+  --si-transition:  0.22s ease;
+}
+
+/* ── Badge specifiche chiave ──────────────────────────────── */
+.si-spec-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 0 24px;
+}
+
+.si-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--si-white);
+  border: 1.5px solid var(--si-border);
+  border-radius: var(--si-radius-sm);
+  padding: 10px 16px;
+  min-width: 90px;
+  flex: 1 1 auto;
+  box-shadow: var(--si-shadow);
+  transition: border-color var(--si-transition);
+}
+
+.si-badge:hover {
+  border-color: var(--si-accent);
+}
+
+.si-badge__icon {
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.si-badge__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--si-muted);
+  margin-bottom: 2px;
+}
+
+.si-badge__value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--si-text);
+  white-space: nowrap;
+}
+
+/* Colori badge per tipo */
+.si-badge--power  { border-top: 3px solid var(--si-accent); }
+.si-badge--area   { border-top: 3px solid #3B82F6; }
+.si-badge--fuel   { border-top: 3px solid #16A34A; }
+.si-badge--price  { border-top: 3px solid var(--si-blue); }
+
+/* ── Descrizione breve ────────────────────────────────────── */
+.si-description {
+  font-size: 15px;
+  line-height: 1.75;
+  color: #374151;
+  margin: 0 0 24px;
+  padding: 16px;
+  background: var(--si-bg);
+  border-radius: var(--si-radius-sm);
+  border-left: 3px solid var(--si-accent);
+}
+
+/* ── Accordion specifiche tecniche ───────────────────────── */
+.si-specs {
+  border: 1.5px solid var(--si-border);
+  border-radius: var(--si-radius);
+  overflow: hidden;
+  margin: 16px 0 24px;
+  background: var(--si-white);
+}
+
+.si-specs summary {
+  list-style: none;
+}
+
+.si-specs summary::-webkit-details-marker {
+  display: none;
+}
+
+.si-specs__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--si-text);
+  background: var(--si-bg);
+  user-select: none;
+  transition: background var(--si-transition);
+  gap: 12px;
+}
+
+.si-specs__trigger:hover {
+  background: #F0EDE9;
+}
+
+.si-specs__trigger-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.si-specs__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--si-border);
+  flex-shrink: 0;
+  transition: transform var(--si-transition), background var(--si-transition);
+}
+
+.si-specs__arrow svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--si-text);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+details[open] .si-specs__arrow {
+  transform: rotate(180deg);
+  background: var(--si-accent);
+}
+
+details[open] .si-specs__arrow svg {
+  stroke: var(--si-white);
+}
+
+/* ── Tabella specifiche ───────────────────────────────────── */
+.si-specs__body {
+  padding: 0;
+  animation: si-fadeIn 0.18s ease;
+}
+
+@keyframes si-fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.si-specs__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.si-specs__row {
+  border-bottom: 1px solid var(--si-border);
+  transition: background var(--si-transition);
+}
+
+.si-specs__row:last-child {
+  border-bottom: none;
+}
+
+.si-specs__row:hover {
+  background: #FAFAF8;
+}
+
+.si-specs__label {
+  padding: 12px 20px;
+  color: var(--si-muted);
+  font-weight: 500;
+  width: 52%;
+  vertical-align: middle;
+}
+
+.si-specs__value {
+  padding: 12px 20px 12px 0;
+  color: var(--si-text);
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+/* Riga evidenziata (es. certificazioni) */
+.si-specs__row--highlight .si-specs__label,
+.si-specs__row--highlight .si-specs__value {
+  color: var(--si-accent);
+}
+
+/* Sezione separatore dentro la tabella */
+.si-specs__section-header {
+  background: var(--si-bg);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--si-muted);
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--si-border);
+}
+
+/* ── CTA richiesta info ───────────────────────────────────── */
+.si-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--si-accent);
+  color: var(--si-white) !important;
+  border-radius: var(--si-radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none !important;
+  transition: background var(--si-transition), transform var(--si-transition);
+  margin: 8px 0 32px;
+  cursor: pointer;
+}
+
+.si-cta:hover {
+  background: var(--si-accent-dark);
+  transform: translateY(-1px);
+}
+
+.si-cta:active {
+  transform: translateY(0);
+}
+
+/* ── Label combustibile ───────────────────────────────────── */
+.si-fuel-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 3px 8px;
+  margin-bottom: 12px;
+}
+
+.si-fuel-tag--legna    { background: #DCFCE7; color: #15803D; }
+.si-fuel-tag--pellet   { background: #FEF3C7; color: #D97706; }
+.si-fuel-tag--combinato{ background: #E0E7FF; color: #4338CA; }
+.si-fuel-tag--gas      { background: #F3F4F6; color: #374151; }
+.si-fuel-tag--caldaia  { background: #FEE2E2; color: #B91C1C; }
+.si-fuel-tag--pdc      { background: #DBEAFE; color: #1D4ED8; }
+.si-fuel-tag--solare   { background: #FEF9C3; color: #A16207; }
+.si-fuel-tag--ev       { background: #F0FDF4; color: #166534; }
+
+/* ── Mobile refinements ───────────────────────────────────── */
+@media (max-width: 600px) {
+  .si-spec-badges { gap: 8px; }
+
+  .si-badge {
+    padding: 8px 12px;
+    min-width: 80px;
+  }
+
+  .si-badge__value { font-size: 14px; }
+
+  .si-specs__trigger {
+    padding: 14px 16px;
+    font-size: 13px;
+  }
+
+  .si-specs__label,
+  .si-specs__value {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .si-specs__value { padding-left: 4px; }
+
+  .si-description {
+    font-size: 14px;
+    padding: 14px;
+  }
+}
+
+/* ── Desktop: tabella più ampia ───────────────────────────── */
+@media (min-width: 768px) {
+  .si-spec-badges { gap: 12px; }
+
+  .si-badge { min-width: 100px; }
+
+  .si-specs__label { width: 45%; }
+}
