@@ -152,43 +152,32 @@ Per le Pompe di Calore puoi fare settimane diverse su: Come funziona → Errore 
 
 ## Architettura tracker xlsx
 
-**Master Idee** = unica fonte di verità. Scrivi solo qui (mai in Shortlist o Libreria — sono viste FILTER auto-aggiornate).
+Tre sheet separati, stesse 10 colonne ciascuno. I dati si **spostano** (non si copiano) da uno sheet all'altro.
 
 | # | Colonna | Note |
 |---|---|---|
-| 1 | Data inserimento | data reale |
-| 2 | Fonte | Ispirazione / Notizie / Ideazione Claude / Scheduled Task / Agenzia / Topic mese |
+| 1 | Data | generazione in Master; produzione in Libreria |
+| 2 | Fonte | Ideazione Claude / Scheduled Task / Agenzia / Topic mese |
 | 3 | Titolo Reel | una riga |
 | 4 | Pain | problema del cliente (1 frase) |
 | 5 | Breve descrizione | cosa mostra/dice il reel (1-2 righe) |
-| 6 | Categoria Contenuto | dalla tassonomia sopra |
-| 7 | Angolo | dalla tassonomia sopra, coerente con la categoria |
+| 6 | Categoria Contenuto | dalla tassonomia |
+| 7 | Angolo | dalla tassonomia, coerente con categoria |
 | 8 | Note | annotazioni libere |
-| 9 | Stato | Nuova / Shortlist / Scartata / Postata |
-| 10 | Priorità (1-5) | la mette l'utente, non Claude |
-| 11 | Mese Creazione Contenuti | nome italiano (Gennaio, Febbraio, …) |
-| 12–18 | Post-pubblicazione | Data pub / Link / Views / Like / Salvati / Commenti / Lead |
+| 9 | Stato | vedi sotto per valori validi per sheet |
+| 10 | Priorità | la mette l'utente, non Claude |
 
-**Shortlist Mensile** = FILTER auto (Stato=Shortlist + mese corrente). Non modificare a mano.
-**Libreria Contenuti** = FILTER auto (Stato=Postata). Non modificare a mano.
+**Master Idee** — idee generate. Stato validi: `Nuova` (default) / `Scartata` / `Shortlist` (impostato dall'utente quando vuole shortlistare). Dati da row 4.
+
+**Shortlist Mensile** — idee selezionate. Stato validi: `Shortlist` / `Produzione` (imposta l'utente quando l'agenzia produce). Popolato dalla routine del 1° del mese.
+
+**Libreria Contenuti** — contenuti prodotti. Data = data produzione. Popolato dalla routine del 28 del mese.
 
 ### Leggere e scrivere l'xlsx da Claude Code
 
 Prerequisito: `pip3 install openpyxl -q`
 
-Attenzione: se Excel ha il file aperto, trovi `~$Solare_Italiano_Content_System.xlsx` nella stessa cartella — chiudi Excel prima di scrivere.
-
-**Leggere il Master Idee:**
-```python
-import openpyxl
-wb = openpyxl.load_workbook(
-    '/Users/daviderossetto/AI/Solare_Italiano/Social/01_Tracker/Solare_Italiano_Content_System.xlsx',
-    data_only=True
-)
-ws = wb['Master Idee']
-rows = list(ws.iter_rows(values_only=True))
-header, data = rows[0], rows[1:]
-```
+Attenzione: se Excel ha il file aperto, trovi `~$Solare_Italiano_Content_System.xlsx` — chiudi Excel prima di scrivere.
 
 **Aggiungere righe al Master Idee:**
 ```python
@@ -196,19 +185,14 @@ import openpyxl
 from datetime import date
 from openpyxl.styles import Border, Side, Alignment
 
+XLSX = '/Users/daviderossetto/AI/Solare_Italiano/Social/01_Tracker/Solare_Italiano_Content_System.xlsx'
 thin = Side(border_style="thin", color="BFBFBF")
 border = Border(left=thin, right=thin, top=thin, bottom=thin)
 center = Alignment(horizontal="center", vertical="center", wrap_text=True)
 left_wrap = Alignment(horizontal="left", vertical="center", wrap_text=True)
-MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-        "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
 
-wb = openpyxl.load_workbook(
-    '/Users/daviderossetto/AI/Solare_Italiano/Social/01_Tracker/Solare_Italiano_Content_System.xlsx'
-)
+wb = openpyxl.load_workbook(XLSX)
 ws = wb['Master Idee']
-oggi = date.today()
-mese = MESI[oggi.month - 1]
 
 first_empty = 4
 while ws.cell(row=first_empty, column=3).value is not None:
@@ -217,17 +201,45 @@ while ws.cell(row=first_empty, column=3).value is not None:
 # ideas = [(titolo, pain, descrizione, categoria, angolo), ...]
 for i, (titolo, pain, descr, cat, ang) in enumerate(ideas):
     r = first_empty + i
-    values = [oggi, "Scheduled Task", titolo, pain, descr, cat, ang,
-              "Generato automaticamente di notte", "Nuova", None, mese,
-              None, None, None, None, None, None, None]
+    values = [date.today(), "Scheduled Task", titolo, pain, descr, cat, ang,
+              "Generato automaticamente di notte", "Nuova", None]
     for c, v in enumerate(values, start=1):
         cell = ws.cell(row=r, column=c, value=v)
         cell.border = border
-        cell.alignment = left_wrap if c in (3, 4, 5, 8, 13) else center
+        cell.alignment = left_wrap if c in (3, 4, 5, 8) else center
         if c == 1:
             cell.number_format = "dd/mm/yyyy"
 
-wb.save('/Users/daviderossetto/AI/Solare_Italiano/Social/01_Tracker/Solare_Italiano_Content_System.xlsx')
+wb.save(XLSX)
+```
+
+**Spostare righe tra sheet (pattern generico):**
+```python
+# Leggi righe da sorgente
+source_rows = []
+source_row_nums = []
+for r in range(4, 500):
+    if ws_src.cell(r, 3).value is None:
+        break
+    if ws_src.cell(r, 9).value == 'Shortlist':  # o altro Stato
+        source_rows.append([ws_src.cell(r, c).value for c in range(1, 11)])
+        source_row_nums.append(r)
+
+# Aggiungi a destinazione
+first_empty_dst = 4
+while ws_dst.cell(first_empty_dst, 3).value is not None:
+    first_empty_dst += 1
+for i, row in enumerate(source_rows):
+    r = first_empty_dst + i
+    for c, v in enumerate(row, 1):
+        cell = ws_dst.cell(r, c, v)
+        cell.border = border
+        cell.alignment = left_wrap if c in (3, 4, 5, 8) else center
+        if c == 1: cell.number_format = "dd/mm/yyyy"
+
+# Elimina da sorgente (dal basso verso l'alto)
+for r in reversed(source_row_nums):
+    ws_src.delete_rows(r)
 ```
 
 ---
@@ -236,13 +248,15 @@ wb.save('/Users/daviderossetto/AI/Solare_Italiano/Social/01_Tracker/Solare_Itali
 
 ### Agente notturno (ogni notte alle 03:00 ora italiana)
 
-Genera 3–5 nuove idee → le aggiunge al Master Idee (`Stato = "Nuova"`, `Fonte = "Scheduled Task"`) → salva copia `.md` in `02_Generazione_Idee/`. Visibile su: https://claude.ai/code/routines
+Genera 3–5 idee → Master Idee (`Stato=Nuova`, `Fonte=Scheduled Task`) → file `.md` in `02_Generazione_Idee/` → commit + push.
 
-**Nota**: per leggere/scrivere il tracker xlsx l'agente remoto ha bisogno che il progetto sia su un repository GitHub (altrimenti i file locali non sono accessibili in cloud). Senza repo, l'agente lavora solo su Google Drive.
+### Agente shortlist (1° di ogni mese alle 03:00 ora italiana)
 
-### Agente mid-month (15 di ogni mese alle 03:00 ora italiana)
+Sposta le idee con `Stato=Shortlist` da Master Idee → Shortlist Mensile → crea brief `.md` in `03_Brief_Agenzia/Shortlist_[Mese]_[Anno].md` → carica su Drive → commit + push.
 
-Legge il foglio "Shortlist Mensile" dal tracker xlsx → crea il file "Shortlist [Mese] [Anno] — Solare Italiano" su Google Drive (cartella "10 Social Media"). I file dei mesi precedenti rimangono su Drive come storico. Visibile su: https://claude.ai/code/routines
+### Agente archivio (28 di ogni mese alle 03:00 ora italiana)
+
+Sposta le idee con `Stato=Produzione` da Shortlist Mensile → Libreria Contenuti (Data = oggi) → commit + push. Segna quindi la fine del ciclo mensile.
 
 ### Google Drive
 
