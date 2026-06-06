@@ -9,16 +9,16 @@ Social/
 ├── CLAUDE.md                    ← questo file (istruzioni complete)
 ├── 01_Tracker/
 │   └── Solare_Italiano_Content_System.xlsx   ← fonte di verità locale
-├── 02_Generazione_Idee/         ← idee generate (YYYY-MM-DD_tipo.md)
 └── 03_Brief_Agenzia/            ← brief 60-90 sec per l'agenzia
 ```
 
-**Flusso rapido**:
-1. Lunedì mattina → genera idee → atterrano in `02_Generazione_Idee/` e nel Master Idee
-2. Martedì → manda messaggio WhatsApp ai venditori (SÌ/NO/FORSE)
-3. Mercoledì sera → aggiorna Stato nel Master (Shortlist / Scartata / Nuova)
-4. Ultimo venerdì del mese → brief per l'agenzia in `03_Brief_Agenzia/`
-5. Prima settimana del mese → audit gap mensile
+**Flusso mensile**:
+1. Ogni notte → agente genera 3-5 idee → Master Idee (Stato=Nuova)
+2. Tu segni le idee migliori come Stato=Shortlist nel tracker
+3. 1° del mese → agente crea Google Sheet "Shortlist — Solare Italiano" su Drive + rimuove da Master Idee
+4. Prime 2 settimane → meeting interno per decidere: Confermata / Posticipata / Scartata
+5. 15° del mese → agente legge Drive e riporta nel Master Idee (Confermata→Produzione, Posticipata→Nuova)
+6. 28° del mese → agente archivia le idee con Stato=Produzione in Libreria Contenuti
 
 ---
 
@@ -167,11 +167,9 @@ Tre sheet separati, stesse 10 colonne ciascuno. I dati si **spostano** (non si c
 | 9 | Stato | vedi sotto per valori validi per sheet |
 | 10 | Priorità | la mette l'utente, non Claude |
 
-**Master Idee** — idee generate. Stato validi: `Nuova` (default) / `Scartata` / `Shortlist` (impostato dall'utente quando vuole shortlistare). Dati da row 4.
+**Master Idee** — idee generate. Stato validi: `Nuova` (default) / `Scartata` / `Shortlist` (impostato dall'utente) / `Produzione` (impostato dall'agente del 15°). Dati da row 4.
 
-**Shortlist Mensile** — idee selezionate. Stato validi: `Shortlist` / `Produzione` (imposta l'utente quando l'agenzia produce). Popolato dalla routine del 1° del mese.
-
-**Libreria Contenuti** — contenuti prodotti. Data = data produzione. Popolato dalla routine del 28 del mese.
+**Libreria Contenuti** — contenuti prodotti. Data = data produzione. Popolato dalla routine del 28°.
 
 ### Leggere e scrivere l'xlsx da Claude Code
 
@@ -247,22 +245,35 @@ for r in reversed(source_row_nums):
 ## Automazione attiva
 
 ### Agente notturno (ogni notte alle 03:00 ora italiana)
+ID: `trig_01K2HvLvGgo6b8nZS9CMb4Sp`
 
-Genera 3–5 idee → Master Idee (`Stato=Nuova`, `Fonte=Scheduled Task`) → file `.md` in `02_Generazione_Idee/` → commit + push.
+Genera 3–5 idee → aggiunge al **Master Idee** (`Stato=Nuova`, `Fonte=Scheduled Task`) → tenta upload xlsx su GitHub via `gh api`.
 
-### Agente shortlist (1° di ogni mese alle 03:00 ora italiana)
+### Agente shortlist — 1° del mese (alle 03:00 ora italiana)
+ID: `trig_015amyZi8gBy1fDeD9jfo2ts`
 
-Sposta le idee con `Stato=Shortlist` da Master Idee → Shortlist Mensile → crea brief `.md` in `03_Brief_Agenzia/Shortlist_[Mese]_[Anno].md` → carica su Drive → commit + push.
+Legge idee con `Stato=Shortlist` da Master Idee → crea **Google Sheet "Shortlist — Solare Italiano"** su Drive (sovrascrive il precedente) → rimuove quelle idee dal Master Idee → upload xlsx su GitHub.
 
-### Agente archivio (28 di ogni mese alle 03:00 ora italiana)
+### Agente shortlist — 15° del mese (alle 03:00 ora italiana)
+ID: `trig_01APWUXWKgfUBREgND8wfmMw`
 
-Sposta le idee con `Stato=Produzione` da Shortlist Mensile → Libreria Contenuti (Data = oggi) → commit + push. Segna quindi la fine del ciclo mensile.
+Legge il Google Sheet "Shortlist — Solare Italiano" da Drive → processa le idee in base allo Stato impostato dall'utente:
+- `Confermata` → Master Idee con `Stato=Produzione`
+- `Posticipata` → Master Idee con `Stato=Nuova`
+- `Scartata` → eliminata
+- Vuoto/`Shortlist` → non processata ancora
+
+### Agente archivio — 28° del mese (alle 03:00 ora italiana)
+ID: `trig_01QzkATpaExJiTHBfXmMCym3`
+
+Legge idee con `Stato=Produzione` da Master Idee → sposta in **Libreria Contenuti** (Data = oggi) → upload xlsx su GitHub.
 
 ### Google Drive
 
 - Cartella "10 Social Media": ID `1nd5F1dC53st4iTcyVD6XH_lR0Uh-riaD`
 - MCP connesso: `mcp__claude_ai_Google_Drive__*`
-- Shortlist Maggio 2026: ID `1sEIHHSfeEtsp1uCf_GgRfGHAtgzV7nrCc_PYFndV9pw`
+- File shortlist attivo: `Shortlist — Solare Italiano` (ID aggiornato ogni mese: cerca per titolo nel Drive)
+- Shortlist corrente (Giugno 2026): ID `1ZZLgLyaP0sYDLQO9x5ypmZLdM-OhH_BoyKyTWq97HTo`
 
 ---
 
