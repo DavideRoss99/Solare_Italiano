@@ -9,15 +9,16 @@ Social/
 ├── CLAUDE.md                    ← questo file (istruzioni complete)
 ├── 01_Tracker/
 │   └── Solare_Italiano_Content_System.xlsx   ← fonte di verità locale
-└── 03_Brief_Agenzia/            ← brief 60-90 sec per l'agenzia
+├── 03_Brief_Agenzia/            ← brief 60-90 sec per l'agenzia
+└── 04_News_Feed/                ← news brief giornalieri (agente notturno), news_YYYY-MM-DD.md
 ```
 
 **Flusso mensile**:
-1. Ogni notte → agente genera 3-5 idee → Master Idee (Stato=Nuova)
-2. Tu segni le idee migliori come Stato=Shortlist nel tracker
-3. 1° del mese → agente crea Google Sheet "Shortlist — Solare Italiano" su Drive + rimuove da Master Idee
-4. Prime 2 settimane → meeting interno per decidere: Confermata / Posticipata / Scartata
-5. 15° del mese → agente legge Drive e riporta nel Master Idee (Confermata→Produzione, Posticipata→Nuova)
+1. Ogni notte → agente cerca news rilevanti sul web, scrive un news brief, genera MASSIMO 5 idee di qualità (anche meno) → Master Idee (Stato=Nuova)
+2. Tu segni le idee migliori come Stato=Shortlist (e quelle scartate come Stato=Scartata) nel tracker
+3. 1° del mese → agente crea Google Sheet "Shortlist — Solare Italiano — [Mese] [Anno]" su Drive + rimuove da Master Idee + sposta le Scartata in Cimitero Idee
+4. Prime 2 settimane → meeting interno per decidere: Confermata / Posticipata / Scartata (nel Google Sheet)
+5. 15° del mese → agente legge il Google Sheet DI QUESTO MESE (cerca il titolo esatto con mese/anno corrente) e riporta nel Master Idee (Confermata→Produzione, Posticipata→Nuova, Scartata→Cimitero Idee)
 6. 28° del mese → agente archivia le idee con Stato=Produzione in Libreria Contenuti
 
 ---
@@ -171,6 +172,8 @@ Tre sheet separati, stesse 10 colonne ciascuno. I dati si **spostano** (non si c
 
 **Libreria Contenuti** — contenuti prodotti. Data = data produzione. Popolato dalla routine del 28°.
 
+**Cimitero Idee** — idee scartate (Stato=Scartata), archiviate per riferimento invece di essere cancellate. Popolato dalla routine del 1° (scartate segnate direttamente in Master) e dalla routine del 15° (scartate decise nel Google Sheet mensile). Stessa struttura a 10 colonne.
+
 ### Leggere e scrivere l'xlsx da Claude Code
 
 Prerequisito: `pip3 install openpyxl -q`
@@ -244,24 +247,31 @@ for r in reversed(source_row_nums):
 
 ## Automazione attiva
 
+**2026-07-18: fix di un bug di duplicazione** — l'agente del 15° rileggeva un vecchio file Drive già processato (il tool `mcp__Google_Drive__create_file` NON sovrascrive un file esistente con lo stesso titolo, crea sempre un file nuovo), causando righe duplicate ripetute nel Master Idee. Fix: ogni ciclo mensile ora usa un titolo Drive univoco con mese+anno (`Shortlist — Solare Italiano — Luglio 2026`), quindi l'agente del 15° cerca SOLO il file del mese corrente e non può mai rileggere decisioni di un mese precedente. Vedi [[feedback_collaboration]] per il perché di questo design.
+
 ### Agente notturno (ogni notte alle 03:00 ora italiana)
 ID: `trig_01K2HvLvGgo6b8nZS9CMb4Sp`
 
-Genera 3–5 idee → aggiunge al **Master Idee** (`Stato=Nuova`, `Fonte=Scheduled Task`) → tenta upload xlsx su GitHub via `gh api`.
+1. Cerca su web (tool WebSearch) notizie recenti (7-14gg) su incentivi/normativa energetica rilevanti → scrive news brief in `Social/04_News_Feed/news_YYYY-MM-DD.md`
+2. Genera MASSIMO 5 idee di qualità (anche meno se il materiale non basta — qualità prima di quantità) → aggiunge al **Master Idee** (`Stato=Nuova`, `Fonte=Scheduled Task`)
+3. Push xlsx + news brief su GitHub
 
 ### Agente shortlist — 1° del mese (alle 03:00 ora italiana)
 ID: `trig_015amyZi8gBy1fDeD9jfo2ts`
 
-Legge idee con `Stato=Shortlist` da Master Idee → crea **Google Sheet "Shortlist — Solare Italiano"** su Drive (sovrascrive il precedente) → rimuove quelle idee dal Master Idee → upload xlsx su GitHub.
+1. Legge idee con `Stato=Shortlist` da Master Idee → crea **Google Sheet "Shortlist — Solare Italiano — [Mese] [Anno]"** su Drive (nuovo file ogni mese, mai sovrascritto) → appende a Shortlist Mensile (senza cancellare righe di mesi precedenti non ancora risolte) → rimuove dal Master Idee
+2. Legge idee con `Stato=Scartata` da Master Idee → sposta in **Cimitero Idee** → rimuove dal Master Idee
+3. Push xlsx su GitHub
 
 ### Agente shortlist — 15° del mese (alle 03:00 ora italiana)
 ID: `trig_01APWUXWKgfUBREgND8wfmMw`
 
-Legge il Google Sheet "Shortlist — Solare Italiano" da Drive → processa le idee in base allo Stato impostato dall'utente:
+Cerca ESATTAMENTE il file Drive del mese corrente (`Shortlist — Solare Italiano — [Mese corrente] [Anno]`) → processa le idee in base allo Stato impostato dall'utente:
 - `Confermata` → Master Idee con `Stato=Produzione`
 - `Posticipata` → Master Idee con `Stato=Nuova`
-- `Scartata` → eliminata
+- `Scartata` → **Cimitero Idee** (NON eliminata, archiviata)
 - Vuoto/`Shortlist` → non processata ancora
+Se il file del mese corrente non esiste, esce senza fare nulla (non cerca file di mesi diversi).
 
 ### Agente archivio — 28° del mese (alle 03:00 ora italiana)
 ID: `trig_01QzkATpaExJiTHBfXmMCym3`
@@ -271,9 +281,13 @@ Legge idee con `Stato=Produzione` da Master Idee → sposta in **Libreria Conten
 ### Google Drive
 
 - Cartella "10 Social Media": ID `1nd5F1dC53st4iTcyVD6XH_lR0Uh-riaD`
-- MCP connesso: `mcp__claude_ai_Google_Drive__*`
-- File shortlist attivo: `Shortlist — Solare Italiano` (ID aggiornato ogni mese: cerca per titolo nel Drive)
-- Shortlist corrente (Giugno 2026): ID `1ZZLgLyaP0sYDLQO9x5ypmZLdM-OhH_BoyKyTWq97HTo`
+- MCP connesso: `mcp__claude_ai_Google_Drive__*` — **non ha un tool di delete/rename**, solo create/search/read. Per questo lo schema usa un titolo univoco per mese invece di provare a sovrascrivere.
+- File shortlist di un mese: `Shortlist — Solare Italiano — [Mese] [Anno]` (es. "Luglio 2026") — cercare per titolo ESATTO, non per "il più recente"
+- File orfani da ripulire manualmente (pre-fix, titolo senza mese, ignorare/cancellare da Drive): `1ZZLgLyaP0sYDLQO9x5ypmZLdM-OhH_BoyKyTWq97HTo` (stale da giugno) e `1NUr3Sj7e3ynBhn_Btmm3YQNBlIDMyfFI3y-ZNRikkKU` (creato per errore il 18/07 prima del fix naming)
+- Shortlist Luglio 2026 (corrente): ID `1V_0nAFjnD_GBilizig7p9bOGPq1aunEDnyUxoGqI1GU`
+
+### Nota sicurezza: PAT GitHub nei trigger
+Le routine push-su-GitHub usano un Personal Access Token. Non è possibile aggiornare il prompt di un trigger via tool se contiene il PAT in chiaro (bloccato da classificatore di sicurezza automatico) — bisogna editarlo a mano su claude.ai/code/routines. I trigger 1° e 15° del mese hanno attualmente il placeholder `INSERISCI_QUI_IL_TUO_GITHUB_PAT` al posto del token reale nello step di push: va sostituito manualmente prima del prossimo ciclo (1° agosto), altrimenti lo step di push xlsx su GitHub fallisce silenziosamente (il resto della routine — Drive, xlsx locale — funziona comunque).
 
 ---
 
